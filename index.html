@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cassini Project</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #0d0d0d;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        header {
+            width: 100%;
+            padding: 30px 20px 10px 20px;
+            text-align: center;
+            z-index: 100;
+            background: linear-gradient(to bottom, #0d0d0d 80%, transparent);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 300;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: #ffffff;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            font-size: 0.85rem;
+            color: #888888;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* 3D Scene Wrapper */
+        .scene-container {
+            flex: 1;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            perspective: 1200px;
+            perspective-origin: 50% 50%;
+            overflow: visible;
+            padding: 20px 0;
+            z-index: 1;
+        }
+
+        .cube {
+            width: 650px;
+            height: 420px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+            will-change: transform;
+        }
+
+        /* Cube Panels */
+        .face {
+            position: absolute;
+            width: 650px;
+            height: 420px;
+            background-color: #141414;
+            border: 1px solid #2d2d2d;
+            border-radius: 6px;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+            transform-style: preserve-3d;
+        }
+
+        /* Panel Orientations aligned seamlessly on a 90deg horizontal spin track */
+        .face:nth-child(1) { transform: rotateY(0deg) translateZ(325px); }
+        .face:nth-child(2) { transform: rotateY(90deg) translateZ(325px); }
+        .face:nth-child(3) { transform: rotateY(180deg) translateZ(325px); }
+        .face:nth-child(4) { 
+            transform: rotateY(270deg) translateZ(325px); 
+            background: linear-gradient(135deg, #161616 0%, #1c1c1c 100%);
+            border: 1px solid #444444;
+        }
+
+        /* Custom styling for the Cassini Panel on the right (Face 4) */
+        .face:nth-child(4) h2 {
+            color: #ffffff;
+            border-bottom: 1px solid #444444;
+            padding-bottom: 12px;
+        }
+        
+        .face:nth-child(4) .cassini-badge {
+            align-self: flex-start;
+            background: #2b2b2b;
+            color: #ffffff;
+            padding: 4px 10px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 15px;
+            border-radius: 3px;
+            border: 1px solid #555555;
+        }
+
+        h2 {
+            font-size: 1.25rem;
+            font-weight: 400;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #cccccc;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #222222;
+            padding-bottom: 8px;
+        }
+
+        .event-list {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        /* Custom Scrollbar for inner content */
+        .event-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .event-list::-webkit-scrollbar-track {
+            background: #141414;
+        }
+        .event-list::-webkit-scrollbar-thumb {
+            background: #333333;
+            border-radius: 2px;
+        }
+
+        .event-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .event-year {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #ffffff;
+            letter-spacing: 1px;
+        }
+
+        .event-desc {
+            font-size: 0.88rem;
+            line-height: 1.45;
+            color: #aaaaaa;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .event-desc strong {
+            color: #ffffff;
+            font-weight: 500;
+        }
+
+        /* Fancy Bottom Footer & Slider Controls */
+        footer {
+            width: 100%;
+            padding: 10px 20px 40px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            z-index: 100;
+            background: linear-gradient(to top, #0d0d0d 80%, transparent);
+        }
+
+        .controls-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .nav-btn {
+            background: none;
+            border: 1px solid #333333;
+            color: #aaaaaa;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover {
+            border-color: #ffffff;
+            color: #ffffff;
+            background-color: #141414;
+        }
+
+        .nav-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        /* Fancy Slider System */
+        .slider-track-container {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+            height: 20px;
+        }
+
+        .slider-bg-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #222222;
+            z-index: 1;
+        }
+
+        .slider-progress-line {
+            position: absolute;
+            left: 0;
+            width: 0%;
+            height: 2px;
+            background-color: #ffffff;
+            z-index: 2;
+            transition: width 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        .slider-nodes {
+            position: absolute;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            z-index: 3;
+        }
+
+        .slider-node {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #222222;
+            border: 2px solid #0d0d0d;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .slider-node::after {
+            content: attr(data-label);
+            position: absolute;
+            top: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.65rem;
+            color: #555555;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            transition: color 0.3s ease;
+        }
+
+        .slider-node.active {
+            background-color: #ffffff;
+            box-shadow: 0 0 8px #ffffff;
+            transform: scale(1.2);
+        }
+
+        .slider-node.active::after {
+            color: #ffffff;
+        }
+
+        /* Keyboard tip hidden or clean text */
+        .tip {
+            font-size: 0.7rem;
+            color: #444444;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Responsive Fixes */
+        @media (max-width: 700px) {
+            .cube, .face {
+                width: 90vw;
+                height: 450px;
+            }
+            .face:nth-child(1) { transform: rotateY(0deg) translateZ(45vw); }
+            .face:nth-child(2) { transform: rotateY(90deg) translateZ(45vw); }
+            .face:nth-child(3) { transform: rotateY(180deg) translateZ(45vw); }
+            .face:nth-child(4) { transform: rotateY(270deg) translateZ(45vw); }
+        }
+.hidden-video-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border: 1px solid rgba(255, 255, 255, 0.15); /* Very faint white border */
+    background: rgba(26, 26, 26, 0.2); /* Blends into dark background */
+    border-radius: 4px;
+    cursor: pointer;
+    z-index: 999; /* Keeps it above everything else */
+    transition: all 0.3s ease;
+}
+
+/* Subtly brightens up only when you hover over it */
+.hidden-video-btn:hover {
+    border-color: rgba(255, 255, 255, 0.5);
+    background: rgba(26, 26, 26, 0.8);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+}
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Super Sigmund Project 🤑🤑🤑🤑</h1>
+        <div class="subtitle">(insert elephant greenscreen affect)</div>
+    </header>
+
+    <div class="scene-container">
+        <div class="cube" id="cube">
+            <!-- PAGE 1 -->
+            <div class="face">
+                <h2>Page Uno: The "Start" 🤣🤣</h2>
+                <div class="event-list">
+                    <div class="event-item">
+                        <div class="event-year">1609</div>
+                        <div class="event-desc"><strong>First Telescopic Observation:</strong> Galileo Galilei of Italy turned his hand built telescope toward the "night sky", becoming the first human to record observations of lunar craters and Jupiter's moons.</div>
+                    </div>
+                    <div class="event-item">
+                        <div class="event-year">1926</div>
+                        <div class="event-desc"><strong>First Liquid-Fueled Rocket Flight:</strong> Dr. Robert H. Goddard of the United States successfully launched the world's first liquid propellant rocket in Massachusetts, laying the fundamental foundations for modern astronautics.</div>
+                    </div>
+                    <div class="event-item">
+                        <div class="event-year">1944</div>
+                        <div class="event-desc"><strong>First V-2 Rocket Launch:</strong> Developed by Wernher von Braun and Germany, the V-2 ballistic rocket crossed the Karman line to become the first human engineered object to enter the boundaries of outer space.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE 2 -->
+            <div class="face">
+                <h2>Page 2: THE Space Race 🤯🤯🤯 </h2>
+                <div class="event-list">
+                    <div class="event-item">
+                        <div class="event-year">1951</div>
+                        <div class="event-desc"><strong>First Dogs in Space:</strong> The Soviet Union successfully launched Tsygan and Dezik aboard a R-1V rocket into suborbital space, safely retrieving them alive to prove living things could survive flight.</div>
+                    </div>
+                    <div class="event-item">
+                        <div class="event-year">1957</div>
+                        <div class="event-desc"><strong>Sputnik 1 Launch:</strong> The Soviet Union launched the first artificial satellite into Earth orbit, broadcasting something called rhythmic radio signals that STUNNED the world and officially opened the space age.</div>
+                    </div>
+                    <div class="event-item">
+                        <div class="event-year">April 1961</div>
+                        <div class="event-desc"><strong>Vostok 1 Mission:</strong> Soviet cosmonaut Yuri Gagarin became the first human in space, completing a single historic orbit around Earth inside his automated capsule.</div>
+                    </div>
+                    <div class="event-item">
+                        <div class="event-year">May 1961</div>
+                        <div class="event-desc"><strong>Freedom 7 Mission:</strong> Astronaut Alan Shepard (🤯) became the first American in space, manually piloting his capsule through a critical flight path.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE 3 -->
+            <div class="face">
+                <h2>Page 3: Uhhh Ionknow</h2>
+                <div class="event-list">
+                    <div class="event-item">
+                        <div class="event-year">1969</div>
+                        <div class="event-desc"><strong>Apollo 11 Moon Landing:</strong> American astronauts Neil Armstrong and Buzz Aldrin successfully landed the Lunar Module on the moon, with Armstrong becoming the first human to step onto another planet 🤯 (or moon?).</div>
+                    </div>
+                    <div class="event-item">
+                        <div class="event-year">1971</div>
+                        <div class="event-desc"><strong>Salyut 1 Station:</strong> Launched by the Soviet Union, this spacecraft became the world's first orbital space station, paving the way for long duration human scientific residence in space.</div>
+                    </div>
+                    <div class="event-item">
+                        <div class="event-year">1984</div>
+                        <div class="event-desc"><strong>STS-41-B Mission:</strong> NASA astronaut Bruce McCandless II completed the first completely untethered spacewalk in history, floating freely outside the Space Shuttle using a nitrogen propelled Manned Maneuvering Unit.</div>
+                    </div>
+                    <div class="event-item">
+                        <div class="event-year">1986</div>
+                        <div class="event-desc"><strong>Challenger Disaster:</strong> The NASA Space Shuttle Challenger tragically broke apart 73 seconds into its flight, taking the lives of all seven crew members, including teacher Christa McAuliffe.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE 4 (CASSINI METALLIC ACCENTED PANEL) -->
+            <div class="face">
+                <div class="cassini-badge">Cassini Something (WOAH)</div>
+                <h2>Page 4: Cassini Something 🤔</h2>
+                <div class="event-list">
+                    <div class="event-item">
+                        <div class="event-year">1997</div>
+                        <div class="event-desc"><strong>Cassini Huygens Launch:</strong> An extraordinary collaborative mission between the United States (NASA), Europe (ESA), and Italy (ASI) launched toward the outer solar system to comprehensively explore Saturn and its complex moon systems.</div>
+                    </div>
+                    <div class="event-item">
+                        <div class="event-year">2009</div>
+                        <div class="event-desc"><strong>Kepler Space Telescope:</strong> Launched by the United States, this precision mission targeted our galaxy to detect Earth sized exoplanets, discovering thousands of Earth like planets.</div>
+                    </div>
+                    <div class="event-item">
+                        <div class="event-year">2017</div>
+                        <div class="event-desc"><strong>I honestly don't know what to name this:</strong> Programmed by international teams, the Cassini spacecraft plunged directly into Saturn's atmosphere to protect pristine habitable moons from contamination, sending real time atmospheric data until the end.</div>
+                    </div>
+                    <div class="event-item">
+                        <div class="event-year">2018</div>
+                        <div class="event-desc"><strong>Falcon Heavy Demo:</strong> Built by private US enterprise SpaceX, the test flight launched a cherry-red Tesla Roadster driven by a spacesuit mannequin named Starman into a permanent heliocentric orbit.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="controls-wrapper">
+            <button class="nav-btn" id="prevBtn" aria-label="Previous Panel">
+                <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            </button>
+            
+            <div class="slider-track-container">
+                <div class="slider-bg-line"></div>
+                <div class="slider-progress-line" id="progressLine"></div>
+                <div class="slider-nodes">
+                    <div class="slider-node active" data-index="0" data-label="Uno"></div>
+                    <div class="slider-node" data-index="1" data-label="Dos"></div>
+                    <div class="slider-node" data-index="2" data-label="Tres"></div>
+                    <div class="slider-node" data-index="3" data-label="Quatro"></div>
+                </div>
+            </div>
+
+            <button class="nav-btn" id="nextBtn" aria-label="Next Panel">
+                <svg viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+            </button>
+        </div>
+        <div class="tip">Ich fahre an Tagen die mit "z“ enden</div>
+    </footer>
+
+    <script>
+        let currentIndex = 0;
+        const totalSlides = 4;
+        const cube = document.getElementById('cube');
+        const progressLine = document.getElementById('progressLine');
+        const nodes = document.querySelectorAll('.slider-node');
+
+        function updateTimeline(index) {
+            // Constrain index
+            if(index < 0) index = 0;
+            if(index >= totalSlides) index = totalSlides - 1;
+            currentIndex = index;
+
+            const angle = -90 * currentIndex;
+            cube.style.transform = `rotateY(${angle}deg)`;
+
+            const percentage = (currentIndex / (totalSlides - 1)) * 100;
+            progressLine.style.width = `${percentage}%`;
+
+            nodes.forEach((node, idx) => {
+                if(idx === currentIndex) {
+                    node.classList.add('active');
+                } else {
+                    node.classList.remove('active');
+                }
+            });
+        }
+
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            if (currentIndex > 0) updateTimeline(currentIndex - 1);
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            if (currentIndex < totalSlides - 1) updateTimeline(currentIndex + 1);
+        });
+
+        nodes.forEach(node => {
+            node.addEventListener('click', (e) => {
+                const targetIdx = parseInt(e.target.getAttribute('data-index'));
+                updateTimeline(targetIdx);
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                if (currentIndex > 0) updateTimeline(currentIndex - 1);
+            } else if (e.key === 'ArrowRight') {
+                if (currentIndex < totalSlides - 1) updateTimeline(currentIndex + 1);
+            }
+        });
+
+        window.addEventListener('load', () => {
+            updateTimeline(0);
+        });
+    </script>
+
+<!-- The clean relative link that matches your current folder directory -->
+<a href="gamblecore.mp4" class="hidden-video-btn" title="GAMBLE GAMBLE GAMBLE YEEEHAWWWW"></a>
+
+</body>
+</html>
